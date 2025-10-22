@@ -117,17 +117,22 @@ def main(args):
     predicted_points_queue = queue.deque([None] * queue_length)
 
     # Load the trained model with custom objects
-    model = load_model(
-        model_weights_path, 
-        custom_objects={
-            'MotionPromptLayer': MotionPromptLayer,
-            'MotionIncorporationLayerV1': MotionIncorporationLayerV1,  # Ensure these are imported or defined
-            'MotionIncorporationLayerV2': MotionIncorporationLayerV2,
-            'CombineOutputs': CombineOutputs,
-            'MotionFramesInput': MotionFramesInput,
-            'custom_loss': custom_loss,
-        }
-    )
+    if model_weights_path.endswith('.weights.h5'):
+        # Load weights only
+        model = get_model(model_name, INPUT_HEIGHT, INPUT_WIDTH)
+        model.load_weights(model_weights_path)
+    else:
+        model = load_model(
+            model_weights_path, 
+            custom_objects={
+                'MotionPromptLayer': MotionPromptLayer,
+                'MotionIncorporationLayerV1': MotionIncorporationLayerV1,  # Ensure these are imported or defined
+                'MotionIncorporationLayerV2': MotionIncorporationLayerV2,
+                'CombineOutputs': CombineOutputs,
+                'MotionFramesInput': MotionFramesInput,
+                'custom_loss': custom_loss,
+            }
+        )
 
     # Read input video and set up output video settings
     video_capture = cv2.VideoCapture(video_path)
