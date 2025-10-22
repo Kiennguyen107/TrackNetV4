@@ -14,13 +14,13 @@ grpcio==1.66.0
 h5py==3.11.0
 importlib-resources==6.4.5
 joblib==1.4.2
-keras==3.5.0
+keras==2.15.0
 kiwisolver==1.4.7
 libclang==18.1.1
 markdown==3.7
 markupsafe==2.1.5
 matplotlib==3.9.2
-ml-dtypes==0.4.0
+ml-dtypes==0.2.0
 namex==0.0.8
 numpy==1.26.4
 nvidia-cublas-cu12==12.3.4.1
@@ -51,7 +51,7 @@ rsa==4.9
 scikit-learn==1.5.1
 scipy==1.13.1
 six==1.16.0
-tensorboard==2.17.1
+tensorboard==2.15.0
 tensorboard-data-server==0.7.2
 tensorflow==2.15.0
 tensorflow-io-gcs-filesystem==0.34.0
