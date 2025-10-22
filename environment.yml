@@ -2,26 +2,15 @@ name: TrackNetV4
 channels:
   - defaults
 dependencies:
-  - _libgcc_mutex=0.1=main
-  - _openmp_mutex=5.1=1_gnu
-  - ca-certificates=2024.7.2=h06a4308_0
-  - ld_impl_linux-64=2.38=h1181459_1
-  - libffi=3.4.4=h6a678d5_1
-  - libgcc-ng=11.2.0=h1234567_1
-  - libgomp=11.2.0=h1234567_1
-  - libstdcxx-ng=11.2.0=h1234567_1
-  - ncurses=6.4=h6a678d5_0
-  - openssl=3.0.14=h5eee18b_0
-  - pip=24.2=py39h06a4308_0
-  - python=3.9.19=h955ad1f_1
-  - readline=8.2=h5eee18b_0
-  - setuptools=72.1.0=py39h06a4308_0
-  - sqlite=3.45.3=h5eee18b_0
-  - tk=8.6.14=h39e8969_0
-  - tzdata=2024a=h04d1e81_0
-  - wheel=0.43.0=py39h06a4308_0
-  - xz=5.4.6=h5eee18b_1
-  - zlib=1.2.13=h5eee18b_1
+  - python=3.9
+  - pip
+  - setuptools
+  - wheel
+  - ca-certificates
+  - openssl
+  - sqlite
+  - tk
+  - zlib
   - pip:
       - absl-py==2.1.0
       - astunparse==1.6.3
@@ -58,7 +47,7 @@ dependencies:
       - nvidia-curand-cu12==10.3.4.107
       - nvidia-cusolver-cu12==11.5.4.101
       - nvidia-cusparse-cu12==12.2.0.103
-      - nvidia-nccl-cu12==2.19.3
+
       - nvidia-nvjitlink-cu12==12.3.101
       - oauthlib==3.2.2
       - opencv-python==4.10.0.84
@@ -79,9 +68,9 @@ dependencies:
       - six==1.16.0
       - tensorboard==2.17.1
       - tensorboard-data-server==0.7.2
-      - tensorflow==2.17.0
+      - tensorflow==2.15.0
+      - tensorflow-io-gcs-filesystem==0.34.0
       - tensorflow-estimator==2.15.0
-      - tensorflow-io-gcs-filesystem==0.37.1
       - termcolor==2.4.0
       - threadpoolctl==3.5.0
       - typing-extensions==4.12.2
