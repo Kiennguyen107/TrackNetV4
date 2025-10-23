@@ -147,110 +147,110 @@ def TrackNetV4(input_height, input_width, fusion_layer_type="TypeA"):
     residual_maps, _ = MotionPromptLayer()(motion_input)
 
     # Layer 1
-    x = Conv2D(64, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(imgs_input)
+    x = Conv2D(64, (3, 3), kernel_initializer='random_uniform', padding='same')(imgs_input)
     x = Activation('relu')(x)
     x = BatchNormalization()(x)
 
     # Layer 2
-    x = Conv2D(64, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(64, (3, 3), kernel_initializer='random_uniform', padding='same')(x)
     x = Activation('relu')(x)
     x1 = BatchNormalization()(x)
 
     # Layer 3
-    x = MaxPooling2D((2, 2), strides=(2, 2), data_format='channels_first')(x1)
+    x = MaxPooling2D((2, 2), strides=(2, 2))(x1)
 
     # Layer 4
-    x = Conv2D(128, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(128, (3, 3), kernel_initializer='random_uniform', padding='same')(x)
     x = Activation('relu')(x)
     x = BatchNormalization()(x)
 
     # Layer 5
-    x = Conv2D(128, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(128, (3, 3), kernel_initializer='random_uniform', padding='same')(x)
     x = Activation('relu')(x)
     x2 = BatchNormalization()(x)
 
     # Layer 6
-    x = MaxPooling2D((2, 2), strides=(2, 2), data_format='channels_first')(x2)
+    x = MaxPooling2D((2, 2), strides=(2, 2))(x2)
 
     # Layer 7
-    x = Conv2D(256, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(256, (3, 3), kernel_initializer='random_uniform', padding='same')(x)
     x = Activation('relu')(x)
     x = BatchNormalization()(x)
 
     # Layer 8
-    x = Conv2D(256, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(256, (3, 3), kernel_initializer='random_uniform', padding='same')(x)
     x = Activation('relu')(x)
     x = BatchNormalization()(x)
 
     # Layer 9
-    x = Conv2D(256, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(256, (3, 3), kernel_initializer='random_uniform', padding='same')(x)
     x = Activation('relu')(x)
     x3 = BatchNormalization()(x)
 
     # Layer 10
-    x = MaxPooling2D((2, 2), strides=(2, 2), data_format='channels_first')(x3)
+    x = MaxPooling2D((2, 2), strides=(2, 2))(x3)
 
     # Layer 11
-    x = Conv2D(512, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(512, (3, 3), kernel_initializer='random_uniform', padding='same')(x)
     x = Activation('relu')(x)
     x = BatchNormalization()(x)
 
     # Layer 12
-    x = Conv2D(512, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(512, (3, 3), kernel_initializer='random_uniform', padding='same')(x)
     x = Activation('relu')(x)
     x = BatchNormalization()(x)
 
     # Layer 13
-    x = Conv2D(512, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(512, (3, 3), kernel_initializer='random_uniform', padding='same')(x)
     x = Activation('relu')(x)
     x = BatchNormalization()(x)
 
     # Layer 14
-    x = concatenate([UpSampling2D((2, 2), data_format='channels_first')(x), x3], axis=1)
+    x = concatenate([UpSampling2D((2, 2))(x), x3], axis=1)
 
     # Layer 15
-    x = Conv2D(256, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(256, (3, 3), kernel_initializer='random_uniform', padding='same')(x)
     x = Activation('relu')(x)
     x = BatchNormalization()(x)
 
     # Layer 16
-    x = Conv2D(256, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(256, (3, 3), kernel_initializer='random_uniform', padding='same')(x)
     x = Activation('relu')(x)
     x = BatchNormalization()(x)
 
     # Layer 17
-    x = Conv2D(256, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(256, (3, 3), kernel_initializer='random_uniform', padding='same')(x)
     x = Activation('relu')(x)
     x = BatchNormalization()(x)
 
     # Layer 18
-    x = concatenate([UpSampling2D((2, 2), data_format='channels_first')(x), x2], axis=1)
+    x = concatenate([UpSampling2D((2, 2))(x), x2], axis=1)
 
     # Layer 19
-    x = Conv2D(128, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(128, (3, 3), kernel_initializer='random_uniform', padding='same')(x)
     x = Activation('relu')(x)
     x = BatchNormalization()(x)
 
     # Layer 20
-    x = Conv2D(128, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(128, (3, 3), kernel_initializer='random_uniform', padding='same')(x)
     x = Activation('relu')(x)
     x = BatchNormalization()(x)
 
     # Layer 21
-    x = concatenate([UpSampling2D((2, 2), data_format='channels_first')(x), x1], axis=1)
+    x = concatenate([UpSampling2D((2, 2))(x), x1], axis=1)
 
     # Layer 22
-    x = Conv2D(64, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(64, (3, 3), kernel_initializer='random_uniform', padding='same')(x)
     x = Activation('relu')(x)
     x = BatchNormalization()(x)
 
     # Layer 23
-    x = Conv2D(64, (3, 3), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(64, (3, 3), kernel_initializer='random_uniform', padding='same')(x)
     x = Activation('relu')(x)
     x = BatchNormalization()(x)
 
     # Layer 24
-    x = Conv2D(3, (1, 1), kernel_initializer='random_uniform', padding='same', data_format='channels_first')(x)
+    x = Conv2D(3, (1, 1), kernel_initializer='random_uniform', padding='same')(x)
     x = fusion_layer([x, residual_maps])
     x = Activation('sigmoid')(x)
 

@@ -29,25 +29,18 @@ INPUT_WIDTH = 512
 def run_model_inference(model, frames):
     """
     Pre-processes the frames and runs inference on the model.
-    
-    Args:
-        model: Loaded model for inference.
-        frames (list): List of frames to run inference on.
-    
-    Returns:
-        predictions: Model predictions for the frames.
-        inference_time (float): Time taken for model inference.
     """
     input_batch = []
     
     # Preprocess the frames for model input
     for frame in frames:
         resized_frame = array_to_img(frame[..., ::-1]).resize((INPUT_WIDTH, INPUT_HEIGHT))
-        frame_array = np.moveaxis(img_to_array(resized_frame), -1, 0)
-        input_batch.extend(frame_array[:3])
-
-    # Prepare input for model prediction
-    input_batch = np.asarray(input_batch).reshape((1, 9, INPUT_HEIGHT, INPUT_WIDTH)).astype('float32') / 255
+        frame_array = img_to_array(resized_frame) / 255.0  # Normalize
+        input_batch.append(frame_array)
+    
+    # Stack frames: (3, H, W, C) -> concatenate along channel axis
+    input_batch = np.concatenate(input_batch, axis=-1)  # Shape: (H, W, 9)
+    input_batch = np.expand_dims(input_batch, axis=0)   # Shape: (1, H, W, 9)
 
     # Perform prediction
     inference_start_time = time.time()
