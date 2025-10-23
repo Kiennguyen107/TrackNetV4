@@ -34,41 +34,37 @@ INPUT_WIDTH = 512
 def run_model_inference(model, frames):
     """
     Pre-processes the frames and runs inference on the model.
-    
-    Args:
-        model: Loaded model for inference.
-        frames (list): List of frames to run inference on.
-    
-    Returns:
-        predictions: Model predictions for the frames.
-        inference_time (float): Time taken for model inference.
     """
+    import tensorflow as tf
+    
     input_batch = []
     
     # Preprocess the frames for model input
     for frame in frames:
-        # Convert BGR to RGB (OpenCV uses BGR by default)
+        # Convert BGR to RGB
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
         # Resize frame
         resized_frame = cv2.resize(frame_rgb, (INPUT_WIDTH, INPUT_HEIGHT))
         
-        # Convert to array and normalize
+        # Normalize
         frame_array = resized_frame.astype('float32') / 255.0
         
-        # Move channel axis from last to first: (H, W, C) -> (C, H, W)
+        # Move channel axis: (H, W, C) -> (C, H, W)
         frame_array = np.moveaxis(frame_array, -1, 0)
         
-        # Extend input_batch with the 3 channels
         input_batch.extend(frame_array)
 
-    # Prepare input for model prediction: shape (1, 9, H, W)
+    # Shape: (1, 9, H, W)
     input_batch = np.asarray(input_batch).reshape((1, 9, INPUT_HEIGHT, INPUT_WIDTH)).astype('float32')
 
-    # Perform prediction
-    inference_start_time = time.time()
-    predictions = model.predict(input_batch, batch_size=BATCH_SIZE, verbose=1)
-    inference_end_time = time.time()
+    # ===== FORCE RUN ON GPU =====
+    with tf.device('/GPU:0'):
+        # Perform prediction
+        inference_start_time = time.time()
+        predictions = model.predict(input_batch, batch_size=BATCH_SIZE, verbose=1)
+        inference_end_time = time.time()
+    # ============================
 
     inference_time = inference_end_time - inference_start_time
     return predictions, inference_time
@@ -123,11 +119,39 @@ def main(args):
     """
     Main function to handle video processing, model inference, and result saving.
     """
+    # ===== KIỂM TRA GPU =====
+    import tensorflow as tf
+    print("=" * 50)
+    print("GPU Information:")
+    print(f"TensorFlow version: {tf.__version__}")
+    print(f"Num GPUs Available: {len(tf.config.list_physical_devices('GPU'))}")
+    print(f"GPU devices: {tf.config.list_physical_devices('GPU')}")
+    print(f"Built with CUDA: {tf.test.is_built_with_cuda()}")
+    print(f"GPU available: {tf.test.is_gpu_available()}")
+    print("=" * 50)
+    # ========================
+    
     video_path = args.video_path
     model_weights_path = args.model_weights
     output_dir = args.output_dir
     queue_length = args.queue_length
     os.makedirs(output_dir, exist_ok=True)
+    
+    # ===== FORCE SỬ DỤNG GPU =====
+    import tensorflow as tf
+    
+    # Set memory growth to avoid OOM
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus:
+        try:
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            print(f"Using GPU: {gpus}")
+        except RuntimeError as e:
+            print(e)
+    else:
+        print("WARNING: No GPU found! Running on CPU (will fail with channels_first)")
+    # ==============================
 
     # Auto-detect model type from filename
     weights_filename = os.path.basename(model_weights_path).lower()
