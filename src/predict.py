@@ -19,7 +19,7 @@ from tensorflow.keras.preprocessing.image import img_to_array, array_to_img
 import keras.backend as K
 from models.TrackNetV4 import MotionPromptLayer, FusionLayerTypeA, FusionLayerTypeB
 from constants import HEIGHT, WIDTH
-from util import custom_loss
+from util import custom_loss, get_model
 
 # Constants
 BATCH_SIZE = 1
@@ -113,12 +113,26 @@ def main(args):
     queue_length = args.queue_length
     os.makedirs(output_dir, exist_ok=True)
 
+    # Auto-detect model type from filename
+    weights_filename = os.path.basename(model_weights_path).lower()
+    if 'type_a' in weights_filename or 'typea' in weights_filename:
+        model_name = "TrackNetV4_TypeA"
+    elif 'type_b' in weights_filename or 'typeb' in weights_filename:
+        model_name = "TrackNetV4_TypeB"
+    elif 'v2' in weights_filename or 'baseline' in weights_filename:
+        model_name = "Baseline_TrackNetV2"
+    else:
+        # Default fallback
+        model_name = "TrackNetV4_TypeA"
+        print(f"Warning: Could not detect model type from filename. Using default: {model_name}")
+    
+    print(f"Detected model type: {model_name}")
+    
     # Initialize the predicted points queue with the specified length
     predicted_points_queue = queue.deque([None] * queue_length)
 
-    # Load the trained model with custom objects
+    # Load model
     if model_weights_path.endswith('.weights.h5'):
-        # Load weights only
         model = get_model(model_name, INPUT_HEIGHT, INPUT_WIDTH)
         model.load_weights(model_weights_path)
     else:
