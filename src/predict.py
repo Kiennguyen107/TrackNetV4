@@ -17,6 +17,11 @@ import argparse
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import img_to_array, array_to_img
 import keras.backend as K
+
+# ===== THÊM DÒNG NÀY ĐỂ SET CHANNELS_FIRST =====
+K.set_image_data_format('channels_first')
+# ================================================
+
 from models.TrackNetV4 import MotionPromptLayer, FusionLayerTypeA, FusionLayerTypeB
 from constants import HEIGHT, WIDTH
 from util import custom_loss, get_model
@@ -32,15 +37,14 @@ def run_model_inference(model, frames):
     """
     input_batch = []
     
-    # Preprocess the frames for model input
+    # Preprocess the frames for model input (GIỮ NGUYÊN CODE GỐC)
     for frame in frames:
         resized_frame = array_to_img(frame[..., ::-1]).resize((INPUT_WIDTH, INPUT_HEIGHT))
-        frame_array = img_to_array(resized_frame) / 255.0  # Normalize
-        input_batch.append(frame_array)
-    
-    # Stack frames: (3, H, W, C) -> concatenate along channel axis
-    input_batch = np.concatenate(input_batch, axis=-1)  # Shape: (H, W, 9)
-    input_batch = np.expand_dims(input_batch, axis=0)   # Shape: (1, H, W, 9)
+        frame_array = np.moveaxis(img_to_array(resized_frame), -1, 0)
+        input_batch.extend(frame_array[:3])
+
+    # Prepare input for model prediction
+    input_batch = np.asarray(input_batch).reshape((1, 9, INPUT_HEIGHT, INPUT_WIDTH)).astype('float32') / 255
 
     # Perform prediction
     inference_start_time = time.time()
