@@ -7,6 +7,9 @@ from glob import glob
 from collections import defaultdict
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
 import shutil
+import time
+import json
+import traceback
 
 from util import genHeatMap
 from constants import (
@@ -16,6 +19,7 @@ from constants import (
     HEIGHT,
     TENNIS_DATASET_GAME_LEVEL_SPLIT_CSV,
     TENNIS_DATASET_CLIP_LEVEL_SPLIT_CSV,
+    PROCESSED_DATA_DIR,  # THÊM DÒNG NÀY
 )
 
 
@@ -26,7 +30,7 @@ class BaseDataset():
         self.target_img_height = target_img_height
         self.target_img_width = target_img_width
         self.sequence_dim = sequence_dim
-        self.processed_folder = os.path.join(root_dir, "processed_data", mode)
+        self.processed_folder = os.path.join(root_dir, PROCESSED_DATA_DIR, mode)
         self.shuffle = shuffle
         self.mag = mag
         self.sigma = sigma
@@ -106,8 +110,8 @@ class BadmintonDataset(BaseDataset):
         """
         Processes the badminton dataset by handling different match groups.
         """
-        train_save_dir = os.path.join(self.root_dir, "processed_data", "train")
-        test_save_dir = os.path.join(self.root_dir, "processed_data", "test")
+        train_save_dir = os.path.join(self.root_dir, PROCESSED_DATA_DIR, "train")
+        test_save_dir = os.path.join(self.root_dir, PROCESSED_DATA_DIR, "test")
 
         # Process Professional and Amateur matches for training data.
         train_count = self._process_helper(
@@ -259,7 +263,7 @@ class TennisDataset(BaseDataset):
             raise ValueError("Unknown split name passed to TennisDataset class")
         
         self.split = split
-        self.processed_folder = os.path.join(root_dir, "processed_data", self.split, self.mode)
+        self.processed_folder = os.path.join(root_dir, PROCESSED_DATA_DIR, self.split, self.mode)
 
     @staticmethod
     def get_clip_level_split(csv_path_or_df):
@@ -301,47 +305,168 @@ class TennisDataset(BaseDataset):
 
     def _process_clip_level(self):
         train_set, test_set = self.get_clip_level_split(TENNIS_DATASET_CLIP_LEVEL_SPLIT_CSV)
-        self._process_set(train_set, os.path.join(self.root_dir, "processed_data", "clip_level", "train"))
-        self._process_set(test_set, os.path.join(self.root_dir, "processed_data", "clip_level", "test"))
+        self._process_set(train_set, os.path.join(self.root_dir, PROCESSED_DATA_DIR, "clip_level", "train"))
+        self._process_set(test_set, os.path.join(self.root_dir, PROCESSED_DATA_DIR, "clip_level", "test"))
 
     def _process_game_level(self):
         train_games, test_games = self.get_game_level_split(TENNIS_DATASET_GAME_LEVEL_SPLIT_CSV)
-        self._process_set(train_games, os.path.join(self.root_dir, "processed_data", "game_level", "train"), use_clip_list=False)
-        self._process_set(test_games, os.path.join(self.root_dir, "processed_data", "game_level", "test"), use_clip_list=False)
+        self._process_set(train_games, os.path.join(self.root_dir, PROCESSED_DATA_DIR, "game_level", "train"), use_clip_list=False)
+        self._process_set(test_games, os.path.join(self.root_dir, PROCESSED_DATA_DIR, "game_level", "test"), use_clip_list=False)
 
     def _process_set(self, set_data, save_data_dir, use_clip_list=True):
         """
-        Process a set of clips or games.
+        Process a set of clips or games with checkpoint support for resuming.
         
         :param set_data: Either a dictionary (game->list of clips) or a list of game names.
         :param save_data_dir: Directory to save processed data.
         :param use_clip_list: If True, set_data is a dict of game:clips; if False, process all clips in each game folder.
         """
         os.makedirs(save_data_dir, exist_ok=True)
-        count = 1
+        
+        # Checkpoint file to track progress
+        checkpoint_file = os.path.join(save_data_dir, "checkpoint.json")
+        
+        # Load checkpoint if exists
+        if os.path.exists(checkpoint_file):
+            with open(checkpoint_file, 'r') as f:
+                checkpoint = json.load(f)
+            processed_clips = set(checkpoint.get('processed_clips', []))
+            count = checkpoint.get('count', 1)
+            print(f"\n📌 RESUMING FROM CHECKPOINT")
+            print(f"   Already processed: {len(processed_clips)} clips")
+            print(f"   Starting from count: {count}")
+            print(f"   Last processed: {checkpoint.get('last_clip', 'N/A')}\n")
+        else:
+            processed_clips = set()
+            count = 1
+            print(f"\n🆕 Starting fresh - no checkpoint found\n")
 
         if use_clip_list:
             # set_data is a dict: game -> list of clips
+            total_clips = sum(len(clips) for clips in set_data.values())
+            print(f"📊 Total clips to process: {total_clips}")
+            print(f"📊 Remaining clips: {total_clips - len(processed_clips)}\n")
+            
             for game, clips in set_data.items():
                 game_folder = os.path.join(self.root_dir, "Dataset", game)
+                
                 for clip in clips:
+                    clip_id = f"{game}_{clip}"
+                    
+                    # Skip if already processed
+                    if clip_id in processed_clips:
+                        print(f"⏭️  Skipping already processed: {game}, {clip}")
+                        continue
+                    
                     clip_folder = os.path.join(game_folder, clip)
-                    print(f"Processing game: {game}, clip: {clip}", flush=True)
-                    x_data, y_data = self._process_clip(clip_folder)
-                    self._save_data(save_data_dir, count, x_data, y_data)
-                    count += 1
+                    print(f"▶️  Processing game: {game}, clip: {clip}", flush=True)
+                    
+                    try:
+                        # Process the clip
+                        x_data, y_data = self._process_clip(clip_folder)
+                        
+                        # Save the data
+                        self._save_data(save_data_dir, count, x_data, y_data)
+                        
+                        # Update checkpoint
+                        processed_clips.add(clip_id)
+                        checkpoint_data = {
+                            'processed_clips': list(processed_clips),
+                            'count': count + 1,
+                            'last_game': game,
+                            'last_clip': clip,
+                            'total_processed': len(processed_clips),
+                            'timestamp': str(pd.Timestamp.now())
+                        }
+                        
+                        with open(checkpoint_file, 'w') as f:
+                            json.dump(checkpoint_data, f, indent=2)
+                        
+                        print(f"💾 Checkpoint saved: {len(processed_clips)}/{total_clips} clips completed")
+                        print(f"{'='*60}\n", flush=True)
+                        
+                        count += 1
+                        
+                    except KeyboardInterrupt:
+                        print(f"\n\n⚠️  INTERRUPTED BY USER")
+                        print(f"✓ Progress saved: {len(processed_clips)} clips completed")
+                        print(f"▶️  To resume, just run the script again!\n")
+                        raise
+                        
+                    except Exception as e:
+                        print(f"❌ ERROR processing {game}/{clip}: {e}", flush=True)
+                        traceback.print_exc()
+                        print(f"⏩ Continuing with next clip...\n", flush=True)
+                        # Don't increment count, continue to next clip
+                        continue
         else:
             # set_data is a list of games; process all clips in each game folder.
+            print(f"📊 Total games to process: {len(set_data)}\n")
+            
             for game in set_data:
                 game_folder = os.path.join(self.root_dir, "Dataset", game)
-                # list directories inside game_folder as clips
-                clips = [d for d in os.listdir(game_folder) if os.path.isdir(os.path.join(game_folder, d))]
+                
+                if not os.path.exists(game_folder):
+                    print(f"⚠️  WARNING: Game folder not found, skipping: {game_folder}")
+                    continue
+                
+                # List directories inside game_folder as clips
+                clips = [d for d in os.listdir(game_folder) 
+                        if os.path.isdir(os.path.join(game_folder, d))]
+                
+                if not clips:
+                    print(f"⚠️  WARNING: No clips found in game: {game}")
+                    continue
+                
                 for clip in clips:
+                    clip_id = f"{game}_{clip}"
+                    
+                    # Skip if already processed
+                    if clip_id in processed_clips:
+                        print(f"⏭️  Skipping already processed: {game}, {clip}")
+                        continue
+                    
                     clip_folder = os.path.join(game_folder, clip)
-                    print(f"Processing game: {game}, clip: {clip}", flush=True)
-                    x_data, y_data = self._process_clip(clip_folder)
-                    self._save_data(save_data_dir, count, x_data, y_data)
-                    count += 1
+                    print(f"▶️  Processing game: {game}, clip: {clip}", flush=True)
+                    
+                    try:
+                        # Process the clip
+                        x_data, y_data = self._process_clip(clip_folder)
+                        
+                        # Save the data
+                        self._save_data(save_data_dir, count, x_data, y_data)
+                        
+                        # Update checkpoint
+                        processed_clips.add(clip_id)
+                        checkpoint_data = {
+                            'processed_clips': list(processed_clips),
+                            'count': count + 1,
+                            'last_game': game,
+                            'last_clip': clip,
+                            'total_processed': len(processed_clips),
+                            'timestamp': str(pd.Timestamp.now())
+                        }
+                        
+                        with open(checkpoint_file, 'w') as f:
+                            json.dump(checkpoint_data, f, indent=2)
+                        
+                        print(f"💾 Checkpoint saved: {len(processed_clips)} clips completed")
+                        print(f"{'='*60}\n", flush=True)
+                        
+                        count += 1
+                        
+                    except KeyboardInterrupt:
+                        print(f"\n\n⚠️  INTERRUPTED BY USER")
+                        print(f"✓ Progress saved: {len(processed_clips)} clips completed")
+                        print(f"▶️  To resume, just run the script again!\n")
+                        raise
+                        
+                    except Exception as e:
+                        print(f"❌ ERROR processing {game}/{clip}: {e}", flush=True)
+                        traceback.print_exc()
+                        print(f"⏩ Continuing with next clip...\n", flush=True)
+                        # Don't increment count, continue to next clip
+                        continue
 
     def _process_clip(self, clip_folder):
         """
@@ -357,8 +482,12 @@ class TennisDataset(BaseDataset):
         visibility = label_data['visibility'].values
         x_coords = label_data['x-coordinate'].values
         y_coords = label_data['y-coordinate'].values
+        start_time = time.time()
 
         num_frames = file_names.shape[0]
+
+        # THÊM THÔNG TIN NÀY
+        print(f"  → Processing {num_frames} frames, will create {num_frames - 2} sequences", flush=True)
 
         sample_image = img_to_array(load_img(os.path.join(clip_folder, file_names[0])))
         ratio = sample_image.shape[0] / self.target_img_height
@@ -368,6 +497,9 @@ class TennisDataset(BaseDataset):
 
         # Process sequences of 3 consecutive frames.
         for i in range(num_frames - (self.sequence_dim[0] - 1)):
+            if i % 50 == 0:  # In mỗi 50 sequences
+              print(f"    Progress: {i}/{num_frames - 2} sequences processed", flush=True)
+
             # Process x data (image sequences)
             frames_sequence = []
             for j in range(self.sequence_dim[0]):
@@ -394,6 +526,9 @@ class TennisDataset(BaseDataset):
         # Convert collected data to NumPy arrays.
         x_data = np.asarray(x_data_list, dtype='float32') / 255.0
         y_data = np.asarray(y_data_list)
+
+        elapsed = time.time() - start_time
+        print(f"  ✓ Completed in {elapsed:.2f}s", flush=True)
 
         return x_data, y_data
 
