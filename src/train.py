@@ -145,9 +145,13 @@ def main(args):
     model_path = args.model_path
     work_dir = args.work_dir
     resume = args.resume
+    checkpoint_path = args.checkpoint_path
 
-    # If using default work directory, append a timestamp for uniqueness
-    if work_dir == "./models" and not resume:
+    # If checkpoint_path is provided, use it for loading but keep work_dir for saving
+    load_from_dir = checkpoint_path if checkpoint_path else work_dir
+
+    # If using default work directory and NOT resuming, append a timestamp for uniqueness
+    if work_dir == "./models" and not resume and not checkpoint_path:
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         work_dir = os.path.join(work_dir, timestamp)
 
@@ -173,19 +177,20 @@ def main(args):
     start_epoch = 0
     start_batch = 0
     
-    if resume:
-        checkpoint = load_checkpoint(work_dir)
+    if resume or checkpoint_path:
+        checkpoint = load_checkpoint(load_from_dir)
         if checkpoint:
             start_epoch = checkpoint['epoch']
             start_batch = checkpoint['batch_idx']
             print(f"\n📌 RESUMING FROM CHECKPOINT")
-            print(f"   Work directory: {work_dir}")
+            print(f"   Loading from: {load_from_dir}")
+            print(f"   Saving to: {work_dir}")
             print(f"   Last epoch: {start_epoch}")
             print(f"   Last batch: {start_batch}")
             print(f"   Timestamp: {checkpoint['timestamp']}\n")
             
             # Find and load latest model
-            latest_model = find_latest_model(work_dir)
+            latest_model = find_latest_model(load_from_dir)
             if latest_model:
                 model_path = latest_model[0]
                 print(f"✓ Loading model from: {model_path}")
@@ -194,7 +199,7 @@ def main(args):
                 start_epoch = 0
                 start_batch = 0
         else:
-            print(f"\n⚠️  No checkpoint found in {work_dir}")
+            print(f"\n⚠️  No checkpoint found in {load_from_dir}")
             print("Starting fresh training...\n")
 
     # Print configuration
@@ -203,6 +208,9 @@ def main(args):
     for key, value in experiment_config.items():
         print(f"  {key}: {value}")
     print(f"  resume: {resume}")
+    print(f"  checkpoint_path: {checkpoint_path if checkpoint_path else 'None'}")
+    print(f"  load_from: {load_from_dir}")
+    print(f"  save_to: {work_dir}")
     print(f"  start_epoch: {start_epoch + 1}/{epochs}")
     print("="*60 + "\n")
 
@@ -403,6 +411,11 @@ if __name__ == "__main__":
         "--resume",
         action="store_true",
         help="Resume training from checkpoint in work_dir"
+    )
+    parser.add_argument(
+        "--checkpoint_path",
+        type=str,
+        help="Path to specific checkpoint directory to resume from (overrides work_dir for loading)"
     )
     
     args = parser.parse_args()
