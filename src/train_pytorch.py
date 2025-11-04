@@ -35,10 +35,10 @@ import torch.optim as optim
 # CONSTANTS - Update these paths according to your setup
 # ============================================================================
 
-TENNIS_DATASET_ROOT = "./data/tennis"  # Update this
+TENNIS_DATASET_ROOT = "/kaggle/input/tttracking-dataset"  # Update this
 BADMINTON_DATASET_ROOT = "./data/badminton"  # Update this
 NEW_TENNIS_DATASET_ROOT = "./data/new_tennis"  # Update this
-PROCESSED_DATA_DIR = "processed"  # Folder name containing processed .npy files
+PROCESSED_DATA_DIR = ""  # Folder name containing processed .npy files
 
 WIDTH = 512
 HEIGHT = 288
