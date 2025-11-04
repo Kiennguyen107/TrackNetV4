@@ -574,7 +574,7 @@ def main(args):
     start_batch = 0
     
     if resume:
-        checkpoint = load_checkpoint(work_dir)
+        checkpoint = load_checkpoint("/kaggle/input/gitmodel")
         if checkpoint:
             model.load_state_dict(checkpoint['model_state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
